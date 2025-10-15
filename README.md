@@ -8,7 +8,7 @@
 
 | Role | Name | ULiège Email |
 | :--- | :--- | :--- |
-| Student 1 | [Your Name] | [Your ULiège Email] |
+| Student 1 | Samira ben ahmed | samirabenahmed725@gmail.com |
 | Student 2 | [Partner Name] | [Partner ULiège Email] |
 | Student 3 (Optional) | [Partner Name] | [Partner ULiège Email] |
 
