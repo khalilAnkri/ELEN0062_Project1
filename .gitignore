@@ -1,2 +1,5 @@
 Dt_Plots/*.pdf
 KNN_Plots/*.pdf
+
+# Ignore all pycach files
+**/__pycache__/
