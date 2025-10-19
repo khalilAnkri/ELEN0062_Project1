@@ -9,8 +9,8 @@
 | Role | Name | ULiège Email |
 | :--- | :--- | :--- |
 | Student 1 | Samira ben ahmed | samirabenahmed725@gmail.com |
-| Student 2 | [Partner Name] | [Partner ULiège Email] |
-| Student 3 (Optional) | [Partner Name] | [Partner ULiège Email] |
+| Student 2 | Mohamed-Khalil Ankri | Khalil.Ankri@student.uliege.be |
+| Student 3  | Ishahk Hamad | ishak.hamad@student.uliege.be |
 
 ## Submission Details
 
