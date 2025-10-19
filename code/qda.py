@@ -25,7 +25,7 @@ class QuadraticDiscriminantAnalysis(BaseEstimator, ClassifierMixin):
         n_classes = len(self.classes_)
         n_features = X.shape[1]
 
-        # Compute priors π_k
+        # Compute priors, means, and covariances
         self.priors_ = np.zeros(n_classes)
         self.means_ = np.zeros((n_classes, n_features))
         self.covs_ = []
@@ -33,12 +33,11 @@ class QuadraticDiscriminantAnalysis(BaseEstimator, ClassifierMixin):
         for i, c in enumerate(self.classes_):
             X_c = X[y == c]
             self.priors_[i] = X_c.shape[0] / X.shape[0]
-            self.means_[i] = X_c.mean(axis=0)
-            cov_c = np.cov(X_c, rowvar=False)
-            self.covs_.append(cov_c)
+            self.means_[i] = np.mean(X_c, axis=0)
+            self.covs_.append(np.cov(X_c, rowvar=False))
 
-        if lda:
-            # Shared covariance for LDA: weighted average of class covariances
+        if self.lda:
+            # Shared covariance matrix (pooled)
             pooled_cov = np.zeros_like(self.covs_[0])
             for i, c in enumerate(self.classes_):
                 n_c = np.sum(y == c)
@@ -49,44 +48,64 @@ class QuadraticDiscriminantAnalysis(BaseEstimator, ClassifierMixin):
 
         return self
 
-    def _discriminant_function(self, X, class_idx):
-        """Compute log posterior up to additive constant for class k."""
-        mean = self.means_[class_idx]
-        if self.lda:
-            # Linear discriminant: shared covariance
-            inv_cov = self.inv_pooled_cov_
-            term = X @ inv_cov @ mean - 0.5 * mean.T @ inv_cov @ mean + np.log(
-                self.priors_[class_idx]
-            )
-            return term
-        else:
-            # Quadratic discriminant: class-specific covariance
-            cov = self.covs_[class_idx]
-            inv_cov = np.linalg.inv(cov)
-            det_cov = np.linalg.det(cov)
-            diff = X - mean
-            term = (
-                -0.5 * np.sum(diff @ inv_cov * diff, axis=1)
-                - 0.5 * np.log(det_cov)
-                + np.log(self.priors_[class_idx])
-            )
-            return term
-
     def predict(self, X):
         X = np.asarray(X, dtype=float)
-        scores = np.column_stack(
-            [self._discriminant_function(X, i) for i in range(len(self.classes_))]
-        )
+        n_samples = X.shape[0]
+        n_classes = len(self.classes_)
+        scores = np.zeros((n_samples, n_classes))
+
+        for i, c in enumerate(self.classes_):
+            mean = self.means_[i]
+            if self.lda:
+                inv_cov = self.inv_pooled_cov_
+                scores[:, i] = (
+                    X @ inv_cov @ mean
+                    - 0.5 * mean.T @ inv_cov @ mean
+                    + np.log(self.priors_[i])
+                )
+            else:
+                cov = self.covs_[i]
+                inv_cov = np.linalg.inv(cov)
+                det_cov = np.linalg.det(cov)
+                diff = X - mean
+                scores[:, i] = (
+                    -0.5 * np.sum(diff @ inv_cov * diff, axis=1)
+                    - 0.5 * np.log(det_cov)
+                    + np.log(self.priors_[i])
+                )
+
         return self.classes_[np.argmax(scores, axis=1)]
 
     def predict_proba(self, X):
         X = np.asarray(X, dtype=float)
-        scores = np.column_stack(
-            [self._discriminant_function(X, i) for i in range(len(self.classes_))]
-        )
-        # Softmax for probabilities
-        exp_scores = np.exp(scores - np.max(scores, axis=1, keepdims=True))
-        probs = exp_scores / np.sum(exp_scores, axis=1, keepdims=True)
+        n_samples = X.shape[0]
+        n_classes = len(self.classes_)
+        scores = np.zeros((n_samples, n_classes))
+
+        for i, c in enumerate(self.classes_):
+            mean = self.means_[i]
+            if self.lda:
+                inv_cov = self.inv_pooled_cov_
+                scores[:, i] = (
+                    X @ inv_cov @ mean
+                    - 0.5 * mean.T @ inv_cov @ mean
+                    + np.log(self.priors_[i])
+                )
+            else:
+                cov = self.covs_[i]
+                inv_cov = np.linalg.inv(cov)
+                det_cov = np.linalg.det(cov)
+                diff = X - mean
+                scores[:, i] = (
+                    -0.5 * np.sum(diff @ inv_cov * diff, axis=1)
+                    - 0.5 * np.log(det_cov)
+                    + np.log(self.priors_[i])
+                )
+
+        # Convert discriminant scores to probabilities
+        scores -= np.max(scores, axis=1, keepdims=True)
+        probs = np.exp(scores)
+        probs /= np.sum(probs, axis=1, keepdims=True)
         return probs
 
 
