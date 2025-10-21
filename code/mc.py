@@ -8,84 +8,98 @@ Q4. Method comparison.
 """
 
 import numpy as np
-from sklearn.model_selection import train_test_split, GridSearchCV
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import accuracy_score
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.neighbors import KNeighborsClassifier
-from sklearn.metrics import accuracy_score
+from sklearn.discriminant_analysis import LinearDiscriminantAnalysis, QuadraticDiscriminantAnalysis
 
 from data import make_dataset1, make_dataset_breast_cancer
-from qda import QuadraticDiscriminantAnalysis
 
+# -------------------------
+# Hyperparameter tuning
+# -------------------------
+def tune_hyperparameter(method, X_train, y_train, candidate_values):
+    best_value = None
+    best_acc = -np.inf
 
-def tune_and_evaluate(clf, param_grid, X_train, y_train, X_test, y_test):
-    """Tune hyperparameters via CV and evaluate on test set."""
-    grid = GridSearchCV(clf, param_grid, cv=5, scoring="accuracy", n_jobs=-1)
-    grid.fit(X_train, y_train)
-    best_model = grid.best_estimator_
-    y_pred = best_model.predict(X_test)
-    acc = accuracy_score(y_test, y_pred)
-    return acc, grid.best_params_
+    for val in candidate_values:
+        if method == "dt":
+            clf = DecisionTreeClassifier(max_depth=val, random_state=0)
+        elif method == "knn":
+            if val > len(X_train):
+                continue  
+            clf = KNeighborsClassifier(n_neighbors=val)
+        else:
+            raise ValueError("Unknown method")
 
+        clf.fit(X_train, y_train)
+        acc = accuracy_score(y_train, clf.predict(X_train))
+        if acc > best_acc:
+            best_acc = acc
+            best_value = val
 
-def run_experiments(make_dataset, n_points=None, n_runs=5, dataset_name="synthetic"):
-    """Compare DT, kNN, LDA, QDA on given dataset."""
-    print(f"\n=== Dataset: {dataset_name} ===")
+    return best_value
 
-    methods = ["DecisionTree", "kNN", "LDA", "QDA"]
-    results = {m: [] for m in methods}
+# -------------------------
+# Evaluate all methods
+# -------------------------
+def evaluate_methods(X, y):
+    results = {}
 
-    for seed in range(n_runs):
-        # Generate dataset and split
-        X, y = make_dataset(n_points, random_state=seed)
-        X_train, X_test, y_train, y_test = train_test_split(
-            X, y, test_size=0.25, random_state=seed
-        )
+    # Split once into train/test
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=0, stratify=y)
 
-        # --- Decision Tree ---
-        acc, best_params = tune_and_evaluate(
-            DecisionTreeClassifier(random_state=seed),
-            {"max_depth": [1, 2, 4, 6, None]},
-            X_train,
-            y_train,
-            X_test,
-            y_test,
-        )
-        results["DecisionTree"].append(acc)
+    # Tune hyperparameters using only training set
+    dt_depths = [1, 2, 4, 6, None]
+    knn_neighbors = [1, 5, 25, 125, 500]
 
-        # --- kNN ---
-        acc, best_params = tune_and_evaluate(
-            KNeighborsClassifier(),
-            {"n_neighbors": [1, 5, 25, 125, 500, 899]},
-            X_train,
-            y_train,
-            X_test,
-            y_test,
-        )
-        results["kNN"].append(acc)
+    best_depth = tune_hyperparameter("dt", X_train, y_train, dt_depths)
+    best_k = tune_hyperparameter("knn", X_train, y_train, knn_neighbors)
 
-        # --- LDA ---
-        lda = QuadraticDiscriminantAnalysis().fit(X_train, y_train, lda=True)
-        preds = lda.predict(X_test)
-        results["LDA"].append(accuracy_score(y_test, preds))
+    # Decision Tree
+    dt_clf = DecisionTreeClassifier(max_depth=best_depth, random_state=0)
+    dt_clf.fit(X_train, y_train)
+    dt_acc = accuracy_score(y_test, dt_clf.predict(X_test))
 
-        # --- QDA ---
-        qda = QuadraticDiscriminantAnalysis().fit(X_train, y_train, lda=False)
-        preds = qda.predict(X_test)
-        results["QDA"].append(accuracy_score(y_test, preds))
+    # kNN
+    knn_clf = KNeighborsClassifier(n_neighbors=best_k)
+    knn_clf.fit(X_train, y_train)
+    knn_acc = accuracy_score(y_test, knn_clf.predict(X_test))
 
-    # Compute mean ± std
-    summary = {}
-    print("\nMethod Comparison (mean ± std over 5 seeds):")
-    for m in methods:
-        mean_acc = np.mean(results[m])
-        std_acc = np.std(results[m])
-        summary[m] = (mean_acc, std_acc)
-        print(f"{m:>12}: {mean_acc:.3f} ± {std_acc:.3f}")
+    # LDA
+    lda_clf = LinearDiscriminantAnalysis()
+    lda_clf.fit(X_train, y_train)
+    lda_acc = accuracy_score(y_test, lda_clf.predict(X_test))
 
-    return summary
+    # QDA
+    qda_clf = QuadraticDiscriminantAnalysis()
+    qda_clf.fit(X_train, y_train)
+    qda_acc = accuracy_score(y_test, qda_clf.predict(X_test))
 
+    results["DT"] = dt_acc
+    results["kNN"] = knn_acc
+    results["LDA"] = lda_acc
+    results["QDA"] = qda_acc
+    results["best_depth"] = best_depth
+    results["best_k"] = best_k
 
+    return results
+
+# -------------------------
+# Run on both datasets
+# -------------------------
 if __name__ == "__main__":
-    # Run on both datasets
-    run_experiments(make_dataset1, n_points=1200, dataset_name="Synthetic (2D)")
-    run_experiments(make_dataset_breast_cancer, dataset_name="Breast Cancer (30D)")
+    datasets = {
+        "Dataset1": make_dataset1(1200, random_state=0),
+        "BreastCancer": make_dataset_breast_cancer(random_state=0)
+    }
+
+    for name, (X, y) in datasets.items():
+        res = evaluate_methods(X, y)
+        print(f"{name} results:")
+        print(f"DT (max_depth={res['best_depth']}): {res['DT']:.3f}")
+        print(f"kNN (n_neighbors={res['best_k']}): {res['kNN']:.3f}")
+        print(f"LDA: {res['LDA']:.3f}")
+        print(f"QDA: {res['QDA']:.3f}")
+        print("-" * 40)
