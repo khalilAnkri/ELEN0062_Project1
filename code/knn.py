@@ -33,11 +33,11 @@ def experiment_knn(
     """Run multiple experiments for various k values and seeds."""
     results = {k: [] for k in neighbors_list}
 
-    # Create output folder
+    # Creating the output folder
     os.makedirs("KNN_Plots", exist_ok=True)
 
     for seed in range(n_runs):
-        # Generate dataset and split 75/25
+        # Generating dataset and split 75/25 (train/test)
         X, y = make_dataset1(n_points, random_state=seed)
         X_train, X_test, y_train, y_test = train_test_split(
             X, y, test_size=0.25, random_state=seed
@@ -47,7 +47,7 @@ def experiment_knn(
             clf, acc = evaluate_knn(X_train, y_train, X_test, y_test, k)
             results[k].append(acc)
 
-            # Independent dataset for boundary visualization
+            # dataset for boundary visualization
             X_plot, y_plot = make_dataset1(n_points, random_state=seed + 100)
             plot_boundary(
                 fname=f"KNN_Plots/knn_k_{k}_run_{seed}",
@@ -57,7 +57,7 @@ def experiment_knn(
                 title=f"kNN (k={k}) - run {seed}",
             )
 
-    # Compute mean ± std across seeds
+    # calculating mean ± std across seeds
     summary = {}
     print("\n=== kNN Results (5 seeds) ===")
     for k in neighbors_list:

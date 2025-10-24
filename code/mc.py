@@ -50,7 +50,7 @@ def evaluate_methods(X, y):
     # Split once into train/test
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=0, stratify=y)
 
-    # Tune hyperparameters using only training set
+    # Tune hyperparameters using only training set 
     dt_depths = [1, 2, 4, 6, None]
     knn_neighbors = [1, 5, 25, 125, 500]
 
@@ -87,7 +87,7 @@ def evaluate_methods(X, y):
     return results
 
 # -------------------------
-# Run on both datasets
+# Run on both datasets Dataset1 and BreastCancer
 # -------------------------
 if __name__ == "__main__":
     datasets = {

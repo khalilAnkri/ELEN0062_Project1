@@ -17,6 +17,7 @@ from data import make_dataset1
 from plot import plot_boundary
 
 
+# Evaluate Decision Tree
 def evaluate_decision_tree(X_train, y_train, X_test, y_test, max_depth):
     """Train and evaluate a Decision Tree for a given max_depth."""
     clf = DecisionTreeClassifier(max_depth=max_depth, random_state=42)
@@ -25,7 +26,7 @@ def evaluate_decision_tree(X_train, y_train, X_test, y_test, max_depth):
     acc = accuracy_score(y_test, y_pred)
     return clf, acc
 
-
+# Experiment with Decision Tree
 def experiment_decision_tree(n_runs=5, n_points=1200, depths=[1, 2, 4, 6, None]):
     """Run multiple experiments with different random seeds and tree depths."""
     results = {d: [] for d in depths}
@@ -51,7 +52,7 @@ def experiment_decision_tree(n_runs=5, n_points=1200, depths=[1, 2, 4, 6, None])
                 title=f"Decision Tree (depth={d}) - run {seed}",
             )
 
-    # Compute mean ± std
+    # Calculating mean ± std
     summary = {}
     print("\n=== Decision Tree Results (5 seeds) ===")
     for d in depths:

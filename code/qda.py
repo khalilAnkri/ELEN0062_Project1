@@ -126,13 +126,13 @@ if __name__ == "__main__":
     X, y = make_dataset1(1200, random_state=0)
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.25, random_state=0)
 
-    # Meshgrid for decision surface
+    # Grid for decision surface 
     x_min, x_max = X[:, 0].min() - 1, X[:, 0].max() + 1
     y_min, y_max = X[:, 1].min() - 1, X[:, 1].max() + 1
     xx, yy = np.meshgrid(np.linspace(x_min, x_max, 300), np.linspace(y_min, y_max, 300))
     grid = np.c_[xx.ravel(), yy.ravel()]
 
-    # Draw both LDA and QDA figures and save them
+    # Plot LDA and QDA  and save figures
     for mode, title in [(True, "LDA"), (False, "QDA")]:
         model = QuadraticDiscriminantAnalysis().fit(X_train, y_train, lda=mode)
         Z = model.predict(grid).reshape(xx.shape)
@@ -166,6 +166,6 @@ if __name__ == "__main__":
         print(f"LDA: Mean Accuracy = {np.mean(lda_acc):.3f}, Std = {np.std(lda_acc):.3f}")
         print(f"QDA: Mean Accuracy = {np.mean(qda_acc):.3f}, Std = {np.std(qda_acc):.3f}")
 
-    # Run evaluation on both datasets
+    # Run evaluation on both datasets Dataset 1 and Breast Cancer
     evaluate_dataset(make_dataset1, "Dataset 1")
     evaluate_dataset(make_dataset_breast_cancer, "Breast Cancer")
